@@ -1,0 +1,32 @@
+---
+alwaysApply: true
+---
+
+# Peluhome
+
+Estamos desarrollando una App para realizar servicios de belleza.
+
+Para ello, el proyecto ya cuenta con el diseño de la pantalla de splash y la del login.
+
+Ademas, tambien desarrollaremos la pantalla de registro de usuario donde se podrán dar de alta los nuevos usuarios. Una vez ingresando a la aplicación, tendrá un menu inferior que contendrá 3 opciones: Mi perfil, Solicitar servicio e historial de servicios. Lo primero que se mostrará es la opción de solicitar servicio y para solicitar un servicio tiene que ser lo mas sencillo posible. Los pasos para solicitar un servicio son los siguientes: 
+Primero, debe de seleccionar la categoría del servicio
+Seguno, se desplegará los servicios por cada categoría y podrá seleccionar la cantidad
+Tecero, el usuario añadirá datos adicionales para el servicio como la fecha, hora y dirección
+Cuarto, habrá un resumen de todo lo seleccionado 
+Por último, realizará la solicitud del servicio
+
+Mi perfil muestra la información que ingresó al momento del registro
+Historial de servicios muestra la información de todos los servicios solicitados y podrá realizar una calificación una vez culmine el servicio.
+
+# Tecnologias
+Estas con las tecnologias que vamos a utilizar para cada una de las funcionalidades
+
+- El proyecto es de tipo Kotlin Multiplatform
+- Compose Multiplatform compose como sistema de interfaces
+- Material 3 como sistemas de diseño
+- Kotlin como lenguaje de programación
+- Koin como intector de dependencias
+
+# Arquitectura
+Vamos a usar la arquitectura que ya esta creada en el proyecto
+
