@@ -34,56 +34,26 @@ import peluhome.composeapp.generated.resources.icon_minus
 import peluhome.composeapp.generated.resources.icon_plus
 
 /**
- * Función auxiliar para obtener servicios por categoría
- * (Duplicada de ServicesScreen para evitar dependencias circulares)
+ * Función auxiliar para convertir un servicio del dominio al modelo local de UI
  */
-private fun getServiceById(serviceId: Int): com.peluhome.project.presentation.home.screens.components.Service? {
-    val allServices = listOf(
-        // MAQUILLAJE (4 servicios)
-        com.peluhome.project.presentation.home.screens.components.Service(1, "Maquillaje de día", 45.0, "1 hora"),
-        com.peluhome.project.presentation.home.screens.components.Service(2, "Maquillaje de noche", 65.0, "1.5 horas"),
-        com.peluhome.project.presentation.home.screens.components.Service(3, "Maquillaje de novia", 120.0, "2 horas"),
-        com.peluhome.project.presentation.home.screens.components.Service(4, "Maquillaje para eventos", 80.0, "1.5 horas"),
-
-        // MANICURE Y PEDICURE (3 servicios)
-        com.peluhome.project.presentation.home.screens.components.Service(5, "Manicure básica", 25.0, "45 min"),
-        com.peluhome.project.presentation.home.screens.components.Service(6, "Pedicure completa", 35.0, "1 hora"),
-        com.peluhome.project.presentation.home.screens.components.Service(7, "Manicure + Pedicure", 50.0, "1.5 horas"),
-
-        // TRATAMIENTO DE CABELLO (4 servicios)
-        com.peluhome.project.presentation.home.screens.components.Service(8, "Corte de cabello", 30.0, "45 min"),
-        com.peluhome.project.presentation.home.screens.components.Service(9, "Tinte completo", 80.0, "2 horas"),
-        com.peluhome.project.presentation.home.screens.components.Service(10, "Tratamiento de keratina", 150.0, "3 horas"),
-        com.peluhome.project.presentation.home.screens.components.Service(11, "Peinado para eventos", 55.0, "1 hora"),
-
-        // DEPILACIÓN (3 servicios)
-        com.peluhome.project.presentation.home.screens.components.Service(12, "Depilación de piernas", 35.0, "1 hora"),
-        com.peluhome.project.presentation.home.screens.components.Service(13, "Depilación de axilas", 15.0, "20 min"),
-        com.peluhome.project.presentation.home.screens.components.Service(14, "Depilación de bikini", 25.0, "45 min")
+private fun convertToUIService(domainService: com.peluhome.project.domain.model.Service): com.peluhome.project.presentation.home.screens.components.Service {
+    return com.peluhome.project.presentation.home.screens.components.Service(
+        id = domainService.id,
+        name = domainService.name,
+        price = domainService.price,
+        duration = "${domainService.durationMinutes} min"
     )
-    return allServices.find { it.id == serviceId }
-}
-
-/**
- * Función auxiliar para obtener el nombre de la categoría por ID de servicio
- */
-private fun getCategoryNameByServiceId(serviceId: Int): String {
-    return when (serviceId) {
-        in 1..4 -> "Maquillaje"
-        in 5..7 -> "Manicure y Pedicure"
-        in 8..11 -> "Tratamiento de Cabello"
-        in 12..14 -> "Depilación"
-        else -> "Otros"
-    }
 }
 
 @Composable
 fun CartBottomSheet(
     selectedServicesMap: Map<Int, Int>,
+    availableServices: List<com.peluhome.project.domain.model.Service>,
     onDismiss: () -> Unit,
     onQuantityChange: (serviceId: Int, quantity: Int) -> Unit = { _, _ -> }
 ) {
     println("DEBUG CartBottomSheet: Mostrando carrito con ${selectedServicesMap.size} servicios: $selectedServicesMap")
+    println("DEBUG CartBottomSheet: Servicios disponibles: ${availableServices.size}")
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -110,10 +80,25 @@ fun CartBottomSheet(
                 } else {
                     // Agrupar servicios por categoría
                     val servicesByCategory = selectedServicesMap.mapNotNull { (serviceId, quantity) ->
-                        val service = getServiceById(serviceId)
-                        service?.let { serviceId to CartServiceItem(it, quantity) }
+                        val domainService = availableServices.find { it.id == serviceId }
+                        domainService?.let { 
+                            val uiService = convertToUIService(it)
+                            serviceId to CartServiceItem(uiService, quantity)
+                        }
                     }.groupBy { (_, serviceItem) ->
-                        getCategoryNameByServiceId(serviceItem.service.id)
+                        // Buscar la categoría del servicio
+                        val domainService = availableServices.find { it.id == serviceItem.service.id }
+                        domainService?.categoryId?.let { categoryId ->
+                            // Aquí podrías tener un mapa de IDs de categoría a nombres
+                            // Por ahora usamos el categoryId directamente
+                            when (categoryId) {
+                                1 -> "Maquillaje"
+                                2 -> "Manicure y Pedicure"
+                                3 -> "Tratamiento de Cabello"
+                                4 -> "Depilación"
+                                else -> "Otros"
+                            }
+                        } ?: "Otros"
                     }
                     
                     var totalAmount = 0.0

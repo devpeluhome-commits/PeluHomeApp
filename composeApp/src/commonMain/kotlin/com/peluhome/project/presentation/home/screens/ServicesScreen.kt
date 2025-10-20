@@ -29,9 +29,11 @@ import peluhome.composeapp.generated.resources.icon_next
 @Composable
 fun ServicesScreen(
     servicesViewModel: ServicesViewModel = koinViewModel(),
+    availableServices: List<com.peluhome.project.domain.model.Service> = emptyList(),
     onNavigateToRequests: () -> Unit = {},
     onCartUpdated: (Map<Int, Int>) -> Unit = {},
     onCartQuantityChange: ((Int, Int) -> Unit) -> Unit = {},
+    onServicesListUpdated: (List<com.peluhome.project.domain.model.Service>) -> Unit = {},
     onServiceCompleted: () -> Unit = {}
 ) {
     val servicesState = servicesViewModel.state
@@ -50,6 +52,23 @@ fun ServicesScreen(
     
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    
+    // Debug: Log del estado del error
+    LaunchedEffect(servicesState.error) {
+        println("DEBUG ServicesScreen: Estado del error cambió: ${servicesState.error}")
+    }
+    
+    // Fallback: Verificar errores periódicamente
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1000) // Verificar cada segundo
+            if (servicesState.error != null && !showErrorDialog) {
+                println("DEBUG ServicesScreen: Error detectado en fallback: ${servicesState.error}")
+                showErrorDialog = true
+                errorMessage = servicesState.error
+            }
+        }
+    }
     
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -77,7 +96,7 @@ fun ServicesScreen(
                     
                     if (selectedDate < today) {
                         dateError = "La fecha no puede ser anterior a hoy"
-                        isValid = false
+                    isValid = false
                     }
                 }
             } catch (e: Exception) {
@@ -121,18 +140,45 @@ fun ServicesScreen(
     
     LaunchedEffect(servicesState.error) {
         if (servicesState.error != null) {
+            println("DEBUG ServicesScreen: Error detectado: ${servicesState.error}")
             showErrorDialog = true
             errorMessage = servicesState.error
         }
     }
     
-    // TODO: Cargar servicios desde API cuando se selecciona una categoría
-    // Por ahora usamos datos locales
-    // LaunchedEffect(selectedCategoryId) {
-    //     selectedCategoryId?.let {
-    //         servicesViewModel.loadServicesByCategory(it)
-    //     }
-    // }
+    // Escuchar cuando la reserva se crea exitosamente
+    LaunchedEffect(servicesState.bookingCreated) {
+        if (servicesState.bookingCreated != null) {
+            showErrorDialog = true
+            errorMessage = "¡Servicio solicitado exitosamente! Puedes ver tu reserva en 'Mis Solicitudes'."
+            
+            // Limpiar el estado de booking creado
+            servicesViewModel.clearBookingCreated()
+            
+            // Resetear el formulario
+            currentStep = 1
+            selectedCategoryId = null
+            selectedServices = emptyMap()
+            date = ""
+            time = ""
+            address = ""
+            comments = ""
+            
+            onServiceCompleted()
+        }
+    }
+    
+    // Cargar servicios desde API cuando se selecciona una categoría
+    LaunchedEffect(selectedCategoryId) {
+        selectedCategoryId?.let {
+            servicesViewModel.loadServicesByCategory(it)
+        }
+    }
+    
+    // Notificar cambios en la lista de servicios al HomeScreen
+    LaunchedEffect(servicesState.services) {
+        onServicesListUpdated(servicesState.services)
+    }
     
     if (showErrorDialog) {
         // Determinar si es un error real o información
@@ -191,18 +237,33 @@ fun ServicesScreen(
                 
                     2 -> selectedCategoryId?.let { categoryId ->
                         Step2ServiceSelection(
-                            categoryId = categoryId,
-                        selectedServices = selectedServices,
-                        onServiceQuantityChange = handleQuantityChange
-                    )
-                }
+                            services = servicesState.services,
+                            isLoading = servicesState.isLoadingServices,
+                            selectedServices = selectedServices,
+                            onServiceQuantityChange = handleQuantityChange
+                        )
+                    }
                 
                     3 -> {
-                    val serviceQuantityMap = selectedServices.mapNotNull { (serviceId, quantity) ->
-                        // Buscar el servicio en los datos locales
-                            val service = getServiceById(serviceId)
-                            service?.let { serviceId to ServiceQuantity(it, quantity) }
+                        val serviceQuantityMap = selectedServices.mapNotNull { (serviceId, quantity) ->
+                            // Buscar el servicio en la lista de servicios disponibles (de todas las categorías)
+                            val service = availableServices.find { it.id == serviceId }
+                            service?.let { 
+                                serviceId to ServiceQuantity(
+                                    Service(
+                                        id = it.id,
+                                        name = it.name,
+                                        price = it.price,
+                                        duration = "${it.durationMinutes} min"
+                                    ),
+                                    quantity
+                                )
+                            }
                         }.toMap()
+                        
+                        println("DEBUG Step3: Servicios seleccionados: ${selectedServices.size}")
+                        println("DEBUG Step3: Servicios disponibles: ${availableServices.size}")
+                        println("DEBUG Step3: ServiceQuantityMap: ${serviceQuantityMap.size}")
 
                         Step3AdditionalData(
                             date = date,
@@ -213,6 +274,7 @@ fun ServicesScreen(
                             dateError = dateError,
                             timeError = timeError,
                             addressError = addressError,
+                            isLoading = servicesState.isCreatingBooking,
                         onDateChange = { 
                             date = it
                             dateError = null
@@ -236,20 +298,30 @@ fun ServicesScreen(
                         },
                             onSubmit = {
                                 if (validateStep3()) {
-                                // TODO: Llamar al API para crear la reserva
-                                showErrorDialog = true
-                                errorMessage = "¡Servicio solicitado exitosamente!"
-                                
-                                // Resetear el formulario
-                                currentStep = 1
-                                selectedCategoryId = null
-                                selectedServices = emptyMap()
-                                date = ""
-                                time = ""
-                                address = ""
-                                comments = ""
-                                
-                                onServiceCompleted()
+                                    // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD
+                                    val dateParts = date.split("/")
+                                    val formattedDate = "${dateParts[2]}-${dateParts[1]}-${dateParts[0]}"
+                                    
+                                    // Preparar lista de servicios (serviceId, quantity)
+                                    val servicesList = selectedServices.map { (serviceId, quantity) ->
+                                        serviceId to quantity
+                                    }
+                                    
+                                    // Preparar mapa de precios
+                                    val servicesPrices = selectedServices.mapNotNull { (serviceId, _) ->
+                                        val service = availableServices.find { it.id == serviceId }
+                                        service?.let { serviceId to it.price }
+                                    }.toMap()
+                                    
+                                    // Llamar al API para crear la reserva
+                                    servicesViewModel.createBooking(
+                                        serviceDate = formattedDate,
+                                        serviceTime = time,
+                                        address = address,
+                                        services = servicesList,
+                                        servicesPrices = servicesPrices,
+                                        notes = comments.ifBlank { null }
+                                    )
                                 }
                             }
                         )
@@ -364,71 +436,3 @@ fun ServicesScreen(
     )
 }
 
-// Función auxiliar para obtener un servicio por ID
-private fun getServiceById(serviceId: Int): Service? {
-    // Lista completa de servicios (deberías tener esto en un lugar centralizado)
-    val allServices = listOf(
-        // CORTE DE CABELLO
-        Service(1, "Puntas", 35.0, "30 min"),
-        Service(2, "Puntas regular", 50.0, "45 min"),
-        Service(3, "Cambio de look", 80.0, "1 hora"),
-        Service(4, "Hombres/niños", 35.0, "30 min"),
-        Service(5, "Corte puntas + Cepillado", 65.0, "45 min"),
-        // PEINADOS
-        Service(6, "Peinado de mujer", 50.0, "1 hora"),
-        Service(7, "Moño de mujer", 80.0, "1.5 horas"),
-        Service(8, "Peinado de niña", 45.0, "45 min"),
-        Service(9, "Cepillado", 40.0, "30 min"),
-        Service(10, "Planchado", 40.0, "45 min"),
-        Service(11, "Ondas/Bucles", 45.0, "1 hora"),
-        // TRATAMIENTOS DE CABELLO
-        Service(12, "Aplicación de tinte", 35.0, "1 hora"),
-        Service(13, "Tinte (raíces)", 95.0, "1.5 horas"),
-        Service(14, "Tinte (completo, sin decoloración)", 115.0, "2 horas"),
-        Service(15, "Tinte (full colores, mechas)", 60.0, "2.5 horas"),
-        Service(16, "Reacondicionamiento", 120.0, "1.5 horas"),
-        Service(17, "Botox cabello corto", 130.0, "2 horas"),
-        Service(18, "Botox cabello mediano", 150.0, "2.5 horas"),
-        Service(19, "Botox cabello largo", 185.0, "3 horas"),
-        Service(20, "Alisado con Keratina", 245.0, "4 horas"),
-        Service(21, "Iluminación", 155.0, "2 horas"),
-        Service(22, "Baño de color", 80.0, "1.5 horas"),
-        // CLÁSICAS
-        Service(23, "Manicure", 35.0, "45 min"),
-        Service(24, "Manicure gel frío", 45.0, "1 hora"),
-        Service(25, "Manicure gel lámpara", 50.0, "1 hora"),
-        Service(26, "Manicure Rubber", 55.0, "1.25 horas"),
-        Service(27, "Manicure Rubber gel color", 75.0, "1.5 horas"),
-        Service(28, "Pedicure", 45.0, "1 hora"),
-        Service(29, "Pedicure gel frío", 55.0, "1.25 horas"),
-        Service(30, "Pedicure gel lámpara", 60.0, "1.25 horas"),
-        // ACRÍLICAS
-        Service(31, "Uñas acrílicas con gel", 130.0, "2 horas"),
-        Service(32, "Gel de reconstrucción", 120.0, "1.5 horas"),
-        Service(33, "Mantenimiento acrílicas", 110.0, "1.5 horas"),
-        // EXTRAS
-        Service(34, "Retiro acrílico", 30.0, "45 min"),
-        Service(35, "Uña acrílica adicional", 20.0, "15 min"),
-        Service(36, "Diseño adicional (02 uñas)", 10.0, "20 min"),
-        Service(37, "Retiro de gel", 20.0, "30 min"),
-        Service(38, "Pintado de uñas", 15.0, "30 min"),
-        // DEPILACIÓN
-        Service(39, "Cejas", 20.0, "15 min"),
-        Service(40, "Bozo", 20.0, "10 min"),
-        Service(41, "Rostro completo", 80.0, "45 min"),
-        Service(42, "Axilas", 35.0, "20 min"),
-        Service(43, "Media pierna", 35.0, "30 min"),
-        Service(44, "Pierna completa", 70.0, "1 hora"),
-        Service(45, "Brasilera", 70.0, "45 min"),
-        Service(46, "Bikini (línea)", 55.0, "30 min"),
-        Service(47, "Con hilo por zona", 20.0, "15 min"),
-        // MASAJES
-        Service(48, "Relajantes", 110.0, "1 hora"),
-        Service(49, "Descontracturantes", 110.0, "1 hora"),
-        Service(50, "Reductores", 120.0, "1.25 horas"),
-        // PAQUETE VERANO
-        Service(51, "10 masajes reductores", 850.0, "12.5 horas")
-    )
-    
-    return allServices.find { it.id == serviceId }
-}

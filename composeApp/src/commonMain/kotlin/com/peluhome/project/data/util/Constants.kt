@@ -14,7 +14,11 @@ class Constants {
         
         // Endpoints de servicios
         const val GET_CATEGORIES = "services/categories"
-        const val GET_SERVICES = "services/categories"
+        const val GET_SERVICES = "services/categories" // Ruta base para servicios por categoría
+        
+        // Endpoints de reservas
+        const val CREATE_BOOKING = "bookings"
+        const val GET_USER_BOOKINGS = "bookings"
         
         // Claves de preferencias locales
         const val PREF_KEY_TOKEN = "PreferencesStoreToken"

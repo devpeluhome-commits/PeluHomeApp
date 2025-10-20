@@ -33,7 +33,15 @@ data class SignInData(
 @Serializable
 data class ErrorResponse(
     @SerialName("success") val success: Boolean,
-    @SerialName("message") val message: String
+    @SerialName("message") val message: String,
+    @SerialName("errors") val errors: List<FieldError>? = null
+)
+
+@Serializable
+data class FieldError(
+    @SerialName("field") val field: String,
+    @SerialName("message") val message: String,
+    @SerialName("value") val value: String? = null
 )
 
 @Serializable
@@ -59,6 +67,25 @@ data class ServicesData(
     @SerialName("services") val services: List<com.peluhome.project.domain.model.Service>
 )
 
+@Serializable
+data class CreateBookingResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("message") val message: String,
+    @SerialName("data") val data: BookingData? = null
+)
 
+@Serializable
+data class BookingData(
+    @SerialName("booking") val booking: com.peluhome.project.domain.model.Booking
+)
 
+@Serializable
+data class BookingsResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("data") val data: BookingsData
+)
 
+@Serializable
+data class BookingsData(
+    @SerialName("bookings") val bookings: List<com.peluhome.project.domain.model.BookingWithServices>
+)

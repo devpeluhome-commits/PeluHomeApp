@@ -44,6 +44,7 @@ import com.peluhome.project.presentation.home.components.CartBottomSheet
 import com.peluhome.project.presentation.home.screens.MyProfileScreen
 import com.peluhome.project.presentation.home.screens.MyRequestsScreen
 import com.peluhome.project.presentation.home.screens.ServicesScreen
+import com.peluhome.project.presentation.history.BookingsScreen
 import com.peluhome.project.ui.ColorPrimary
 import org.jetbrains.compose.resources.painterResource
 import peluhome.composeapp.generated.resources.Res
@@ -102,6 +103,7 @@ fun HomeScreen(
     // Estados para el carrito (se pasarán desde ServicesScreen)
     var selectedServicesMap by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
     var onCartQuantityChange by remember { mutableStateOf<((Int, Int) -> Unit)?>(null) }
+    var availableServices by remember { mutableStateOf<List<com.peluhome.project.domain.model.Service>>(emptyList()) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -256,6 +258,7 @@ fun HomeScreen(
             when (selectedTab) {
                 0 -> MyProfileScreen()
                 1 -> ServicesScreen(
+                    availableServices = availableServices,
                     onNavigateToRequests = {
                         selectedTab = 2 // Navegar a Mis Solicitudes
                     },
@@ -266,13 +269,22 @@ fun HomeScreen(
                     onCartQuantityChange = { quantityChangeFunction ->
                         onCartQuantityChange = quantityChangeFunction
                     },
+                    onServicesListUpdated = { services ->
+                        println("DEBUG HomeScreen: Recibiendo lista de servicios: ${services.size}")
+                        // Acumular servicios de todas las categorías sin duplicados
+                        val existingIds = availableServices.map { it.id }.toSet()
+                        val newServices = services.filter { it.id !in existingIds }
+                        availableServices = availableServices + newServices
+                        println("DEBUG HomeScreen: Total servicios acumulados: ${availableServices.size}")
+                    },
                     onServiceCompleted = {
-                        // Resetear el carrito cuando se complete el servicio
+                        // Resetear el carrito y servicios disponibles cuando se complete el servicio
                         selectedServicesMap = emptyMap()
-                        println("DEBUG HomeScreen: Carrito reseteado después de completar servicio")
+                        availableServices = emptyList()
+                        println("DEBUG HomeScreen: Carrito y servicios disponibles reseteados después de completar servicio")
                     }
                 )
-                2 -> MyRequestsScreen()
+                2 -> BookingsScreen()
             }
         }
         
@@ -328,6 +340,7 @@ fun HomeScreen(
         if (showCartSheet) {
             CartBottomSheet(
                 selectedServicesMap = selectedServicesMap,
+                availableServices = availableServices,
                 onDismiss = { showCartSheet = false },
                 onQuantityChange = onCartQuantityChange ?: { serviceId, quantity ->
                     println("DEBUG HomeScreen: Cambio de cantidad - ServiceId: $serviceId, Quantity: $quantity")

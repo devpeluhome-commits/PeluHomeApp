@@ -2,6 +2,7 @@ package com.peluhome.project.presentation.components
 
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -21,31 +22,9 @@ actual fun DatePickerDialog(
     onDateSelected: (String) -> Unit
 ) {
     if (show) {
-        // Configurar la fecha mínima como hoy
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        
+        // DatePicker sin restricciones de fecha - permitir cualquier fecha
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = System.currentTimeMillis(),
-            // Establecer fecha mínima como hoy
-            selectableDates = object : androidx.compose.material3.SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    // Convertir a UTC y comparar solo fechas (sin hora)
-                    val selectedCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
-                    selectedCalendar.timeInMillis = utcTimeMillis
-                    
-                    val todayCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
-                    todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
-                    todayCalendar.set(Calendar.MINUTE, 0)
-                    todayCalendar.set(Calendar.SECOND, 0)
-                    todayCalendar.set(Calendar.MILLISECOND, 0)
-                    
-                    return selectedCalendar.timeInMillis >= todayCalendar.timeInMillis
-                }
-            }
+            initialSelectedDateMillis = System.currentTimeMillis()
         )
         
         DatePickerDialog(
@@ -54,10 +33,12 @@ actual fun DatePickerDialog(
                 Button(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            // Usar UTC para evitar problemas de zona horaria
+                            // El DatePicker de Material3 devuelve la fecha en UTC
+                            // Necesitamos convertir correctamente a la zona horaria local
                             val utcCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
                             utcCalendar.timeInMillis = millis
                             
+                            // Obtener los valores de fecha en UTC
                             val day = utcCalendar.get(Calendar.DAY_OF_MONTH)
                             val month = utcCalendar.get(Calendar.MONTH) + 1 // Months are 0-based
                             val year = utcCalendar.get(Calendar.YEAR)

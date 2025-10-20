@@ -44,6 +44,9 @@ val dataModule = module {
 
     factory<AuthRepository> { AuthRepositoryImp(get(), get()) }
     factory<ServiceRepository> { ServiceRepositoryImp(get()) }
+    factory<com.peluhome.project.domain.repository.BookingRepository> { 
+        com.peluhome.project.data.repository.BookingRepositoryImp(get()) 
+    }
 }
 
 val viewModelModule = module {
@@ -54,7 +57,10 @@ val viewModelModule = module {
         RegisterUserViewModel(authRepository = get())
     }
     viewModel {
-        ServicesViewModel(serviceRepository = get())
+        ServicesViewModel(serviceRepository = get(), bookingRepository = get())
+    }
+    viewModel {
+        com.peluhome.project.presentation.history.BookingsViewModel(bookingRepository = get())
     }
 }
 

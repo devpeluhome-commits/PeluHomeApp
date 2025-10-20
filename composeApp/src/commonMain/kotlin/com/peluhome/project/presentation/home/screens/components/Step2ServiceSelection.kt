@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,8 +20,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,6 +38,7 @@ import peluhome.composeapp.generated.resources.Res
 import peluhome.composeapp.generated.resources.icon_minus
 import peluhome.composeapp.generated.resources.icon_plus
 
+// Modelo local para UI (conversión del modelo de dominio)
 data class Service(
     val id: Int,
     val name: String,
@@ -50,30 +53,61 @@ data class ServiceQuantity(
 
 @Composable
 fun Step2ServiceSelection(
-    categoryId: Int,
+    services: List<com.peluhome.project.domain.model.Service>,
+    isLoading: Boolean,
     selectedServices: Map<Int, Int>,
     onServiceQuantityChange: (Int, Int) -> Unit
 ) {
-    println("DEBUG Step2: CategoryId recibido = $categoryId")
-    val services = getServicesByCategory(categoryId)
-    println("DEBUG Step2: Servicios encontrados = ${services.size}")
+    println("DEBUG Step2: Servicios recibidos desde API = ${services.size}")
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(services) { service ->
-                ServiceCard(
-                    service = service,
-                    quantity = selectedServices[service.id] ?: 0,
-                    onQuantityChange = { newQuantity ->
-                        onServiceQuantityChange(service.id, newQuantity)
-                    }
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = ColorPrimary)
+            }
+        } else if (services.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No hay servicios disponibles para esta categoría",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Gray
                 )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(services) { domainService ->
+                        // Convertir el servicio del dominio al modelo local de UI
+                        val uiService = Service(
+                            id = domainService.id,
+                            name = domainService.name,
+                            price = domainService.price,
+                            duration = "${domainService.durationMinutes} min"
+                        )
+                        
+                        ServiceCard(
+                            service = uiService,
+                            quantity = selectedServices[uiService.id] ?: 0,
+                            onQuantityChange = { newQuantity ->
+                                onServiceQuantityChange(uiService.id, newQuantity)
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -181,43 +215,5 @@ private fun ServiceCard(
             }
         }
     }
-}
-
-private fun getServicesByCategory(categoryId: Int): List<Service> {
-    println("DEBUG getServicesByCategory: Buscando servicios para categoryId=$categoryId")
-    val result = when (categoryId) {
-        1 -> listOf( // MAQUILLAJE (4 servicios)
-            Service(1, "Maquillaje de día", 45.0, "1 hora"),
-            Service(2, "Maquillaje de noche", 65.0, "1.5 horas"),
-            Service(3, "Maquillaje de novia", 120.0, "2 horas"),
-            Service(4, "Maquillaje para eventos", 80.0, "1.5 horas")
-        )
-
-        2 -> listOf( // MANICURE Y PEDICURE (3 servicios)
-            Service(5, "Manicure básica", 25.0, "45 min"),
-            Service(6, "Pedicure completa", 35.0, "1 hora"),
-            Service(7, "Manicure + Pedicure", 50.0, "1.5 horas")
-        )
-
-        3 -> listOf( // TRATAMIENTO DE CABELLO (4 servicios)
-            Service(8, "Corte de cabello", 30.0, "45 min"),
-            Service(9, "Tinte completo", 80.0, "2 horas"),
-            Service(10, "Tratamiento de keratina", 150.0, "3 horas"),
-            Service(11, "Peinado para eventos", 55.0, "1 hora")
-        )
-
-        4 -> listOf( // DEPILACIÓN (3 servicios)
-            Service(12, "Depilación de piernas", 35.0, "1 hora"),
-            Service(13, "Depilación de axilas", 15.0, "20 min"),
-            Service(14, "Depilación de bikini", 25.0, "45 min")
-        )
-
-        else -> {
-            println("DEBUG getServicesByCategory: categoryId=$categoryId NO COINCIDE con ningún caso")
-            emptyList()
-        }
-    }
-    println("DEBUG getServicesByCategory: Retornando ${result.size} servicios")
-    return result
 }
 

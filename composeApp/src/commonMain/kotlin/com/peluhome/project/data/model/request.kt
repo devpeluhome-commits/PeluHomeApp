@@ -21,6 +21,18 @@ data class SignInRequest(
     @SerialName("password") val password: String
 )
 
+@Serializable
+data class CreateBookingRequest(
+    @SerialName("service_date") val serviceDate: String, // Formato: YYYY-MM-DD
+    @SerialName("service_time") val serviceTime: String, // Formato: HH:MM
+    @SerialName("address") val address: String,
+    @SerialName("services") val services: List<BookingServiceItem>,
+    @SerialName("notes") val notes: String? = null
+)
 
-
-
+@Serializable
+data class BookingServiceItem(
+    @SerialName("service_id") val serviceId: Int,
+    @SerialName("quantity") val quantity: Int,
+    @SerialName("price") val price: Double
+)

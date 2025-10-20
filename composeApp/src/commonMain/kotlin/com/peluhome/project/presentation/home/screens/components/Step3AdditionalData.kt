@@ -51,6 +51,7 @@ fun Step3AdditionalData(
     dateError: String? = null,
     timeError: String? = null,
     addressError: String? = null,
+    isLoading: Boolean = false,
     onDateChange: (String) -> Unit,
     onTimeChange: (String) -> Unit,
     onAddressChange: (String) -> Unit,
@@ -74,10 +75,16 @@ fun Step3AdditionalData(
             0.0
         }
         
+        println("DEBUG Step3: Servicios seleccionados: ${selectedServices.size}")
+        println("DEBUG Step3: Total servicios: $servicesTotal")
+        println("DEBUG Step3: Fecha: $date, Hora: $time")
+        println("DEBUG Step3: Costo delivery: $deliveryCost")
+        println("DEBUG Step3: Total final: ${servicesTotal + deliveryCost}")
+        
         servicesTotal + deliveryCost
     }
     
-    val total = selectedServices.values.sumOf { it.service.price * it.quantity }
+    val total = calculateTotalWithDelivery()
 
     Column(
         modifier = Modifier
@@ -292,7 +299,7 @@ fun Step3AdditionalData(
                         color = Color.Black
                     )
                     Text(
-                        text = "S/ ${calculateTotalWithDelivery()}",
+                        text = "S/$total",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = ColorPrimary
@@ -307,7 +314,7 @@ fun Step3AdditionalData(
             modifier = Modifier.fillMaxWidth(),
             label = "Solicitar Servicio",
             onClick = onSubmit,
-            isLoading = false,
+            isLoading = isLoading,
             color = ColorPrimary
         )
     }
