@@ -48,10 +48,9 @@ actual fun DatePickerDialog(
             ) {
                 val selectedDate = datePicker.date
                 
-                // Crear un formateador de fecha para evitar problemas de zona horaria
+                // Crear un formateador de fecha (usa zona horaria local por defecto)
                 val dateFormatter = platform.Foundation.NSDateFormatter()
                 dateFormatter.dateFormat = "dd/MM/yyyy"
-                dateFormatter.timeZone = platform.Foundation.NSTimeZone.systemTimeZone
                 
                 val formattedDate = dateFormatter.stringFromDate(selectedDate)
                 
