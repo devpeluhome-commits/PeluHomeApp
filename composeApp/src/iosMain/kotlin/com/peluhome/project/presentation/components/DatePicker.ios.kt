@@ -50,7 +50,7 @@ actual fun DatePickerDialog(
                 
                 // Usar calendario con zona horaria local
                 val calendar = NSCalendar.currentCalendar()
-                calendar.timeZone = platform.Foundation.NSTimeZone.localTimeZone()
+                calendar.timeZone = platform.Foundation.NSTimeZone.localTimeZone
                 
                 val components = calendar.components(
                     unitFlags = (platform.Foundation.NSCalendarUnitDay or 
