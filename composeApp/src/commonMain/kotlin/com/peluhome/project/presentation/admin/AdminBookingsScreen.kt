@@ -15,9 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -85,27 +82,10 @@ fun AdminBookingsScreen(
     // Estado para el buscador
     var searchQuery by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
-    
-    // Estado para pull-to-refresh
-    val pullRefreshState = rememberPullToRefreshState()
 
     // Cargar datos cada vez que se entra a la pantalla
     LaunchedEffect(Unit) {
         adminViewModel.loadAllBookings()
-    }
-    
-    // Manejar pull-to-refresh
-    LaunchedEffect(pullRefreshState.isRefreshing) {
-        if (pullRefreshState.isRefreshing) {
-            adminViewModel.loadAllBookings()
-        }
-    }
-    
-    // Finalizar pull-to-refresh cuando termine la carga
-    LaunchedEffect(state.isLoading) {
-        if (!state.isLoading && pullRefreshState.isRefreshing) {
-            pullRefreshState.endRefresh()
-        }
     }
     
     // Filtrar reservas por número correlativo
@@ -154,6 +134,17 @@ fun AdminBookingsScreen(
                     titleContentColor = ColorPrimary
                 ),
                 actions = {
+                    // Botón de refrescar
+                    IconButton(
+                        onClick = { adminViewModel.loadAllBookings() }
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.icon_next),
+                            contentDescription = "Refrescar",
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                    }
                     // Botón de cerrar sesión
                     IconButton(
                         onClick = { showLogoutDialog = true }
@@ -280,8 +271,7 @@ fun AdminBookingsScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 16.dp)
-                                .pullToRefresh(pullRefreshState),
+                                .padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(filteredBookings) { booking ->
@@ -301,12 +291,6 @@ fun AdminBookingsScreen(
                     }
                 }
             }
-
-            // Pull-to-refresh indicator
-            PullToRefreshContainer(
-                state = pullRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
 
             // Mostrar error si existe
             state.error?.let { error ->
