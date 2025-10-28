@@ -33,6 +33,8 @@ actual fun DatePickerDialog(
             val datePicker = UIDatePicker().apply {
                 datePickerMode = UIDatePickerMode.UIDatePickerModeDate
                 preferredDatePickerStyle = platform.UIKit.UIDatePickerStyle.UIDatePickerStyleWheels
+                // Establecer la fecha actual como fecha inicial
+                date = platform.Foundation.NSDate()
                 // Sin restricciones de fecha - permitir cualquier fecha
                 // La validación de fechas pasadas se hace en el Paso 3
             }
@@ -45,7 +47,12 @@ actual fun DatePickerDialog(
                 style = UIAlertActionStyleDefault
             ) {
                 val selectedDate = datePicker.date
-                val calendar = NSCalendar.currentCalendar()
+                
+                // Usar calendario gregoriano con zona horaria local
+                val calendar = NSCalendar.gregorianCalendar().apply {
+                    timeZone = platform.Foundation.NSTimeZone.localTimeZone
+                }
+                
                 val components = calendar.components(
                     unitFlags = (platform.Foundation.NSCalendarUnitDay or 
                                 platform.Foundation.NSCalendarUnitMonth or 
@@ -56,6 +63,10 @@ actual fun DatePickerDialog(
                 val day = components.day
                 val month = components.month
                 val year = components.year
+                
+                // Debug para verificar los valores
+                println("iOS DatePicker - Selected date: $selectedDate")
+                println("iOS DatePicker - Day: $day, Month: $month, Year: $year")
                 
                 val formattedDate = "${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/$year"
                 onDateSelected(formattedDate)
