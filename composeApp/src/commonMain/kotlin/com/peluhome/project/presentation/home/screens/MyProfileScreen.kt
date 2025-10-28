@@ -17,9 +17,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,8 +30,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.peluhome.project.presentation.components.AlertComponent
+import com.peluhome.project.presentation.profile.ProfileViewModel
 import com.peluhome.project.ui.ColorPrimary
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
 import peluhome.composeapp.generated.resources.Res
 import peluhome.composeapp.generated.resources.background
 import peluhome.composeapp.generated.resources.icon_business_center
@@ -46,17 +51,25 @@ data class UserProfile(
 )
 
 @Composable
-fun MyProfileScreen() {
-    // Datos ficticios del usuario
-    val userProfile = UserProfile(
-        names = "Juan Carlos",
-        paternalSurname = "Pérez",
-        maternalSurname = "García",
-        documentType = "DNI",
-        documentNumber = "12345678",
-        phoneNumber = "987654321",
-        email = "juan.perez@email.com"
-    )
+fun MyProfileScreen(
+    viewModel: ProfileViewModel = koinViewModel()
+) {
+    val state = viewModel.state
+    
+    // Cargar perfil al iniciar
+    LaunchedEffect(Unit) {
+        viewModel.loadProfile()
+    }
+    
+    // Mostrar error si existe
+    state.error?.let { error ->
+        AlertComponent(
+            title = "Error",
+            message = error,
+            dismiss = { viewModel.clearError() },
+            action = { viewModel.clearError() }
+        )
+    }
     
     Box(
         modifier = Modifier.fillMaxSize()
@@ -77,95 +90,119 @@ fun MyProfileScreen() {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Avatar circular con icono
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(ColorPrimary),
-                contentAlignment = Alignment.Center
-            ) {
+            if (state.isLoading) {
+                // Mostrar loading
+                CircularProgressIndicator(
+                    color = ColorPrimary,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "${userProfile.names.first()}${userProfile.paternalSurname.first()}",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = "Cargando perfil...",
+                    fontSize = 16.sp,
+                    color = Color.Black
                 )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = "${userProfile.names} ${userProfile.paternalSurname} ${userProfile.maternalSurname}",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Card con información del perfil
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 4.dp
-                )
-            ) {
-                Column(
+            } else if (state.user != null) {
+                // Mostrar datos del usuario
+                val user = state.user
+                
+                // Avatar circular con icono
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(ColorPrimary),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Información Personal",
-                        fontSize = 18.sp,
+                        text = "${user.names.first()}${user.paternalSurname.first()}",
+                        fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ColorPrimary
-                    )
-                    
-                    ProfileField(
-                        label = "Nombres",
-                        value = userProfile.names
-                    )
-                    
-                    ProfileField(
-                        label = "Apellido Paterno",
-                        value = userProfile.paternalSurname
-                    )
-                    
-                    ProfileField(
-                        label = "Apellido Materno",
-                        value = userProfile.maternalSurname
-                    )
-                    
-                    ProfileField(
-                        label = "Tipo de Documento",
-                        value = userProfile.documentType
-                    )
-                    
-                    ProfileField(
-                        label = "Número de Documento",
-                        value = userProfile.documentNumber
-                    )
-                    
-                    ProfileField(
-                        label = "Número de Celular",
-                        value = userProfile.phoneNumber
-                    )
-                    
-                    ProfileField(
-                        label = "Correo Electrónico",
-                        value = userProfile.email
+                        color = Color.White
                     )
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "${user.names} ${user.paternalSurname} ${user.maternalSurname}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Card con información del perfil
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    ),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 4.dp
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Información Personal",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorPrimary
+                        )
+                        
+                        ProfileField(
+                            label = "Nombres",
+                            value = user.names
+                        )
+                        
+                        ProfileField(
+                            label = "Apellido Paterno",
+                            value = user.paternalSurname
+                        )
+                        
+                        ProfileField(
+                            label = "Apellido Materno",
+                            value = user.maternalSurname
+                        )
+                        
+                        ProfileField(
+                            label = "Tipo de Documento",
+                            value = user.documentType
+                        )
+                        
+                        ProfileField(
+                            label = "Número de Documento",
+                            value = user.documentNumber
+                        )
+                        
+                        ProfileField(
+                            label = "Número de Celular",
+                            value = user.phone
+                        )
+                        
+                        ProfileField(
+                            label = "Correo Electrónico",
+                            value = user.email
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+            } else {
+                // Mostrar mensaje de error o estado vacío
+                Text(
+                    text = "No se pudo cargar el perfil",
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

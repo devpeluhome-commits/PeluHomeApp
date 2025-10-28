@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,14 +37,23 @@ import com.peluhome.project.presentation.components.AlertComponent
 import com.peluhome.project.ui.ColorPrimary
 import org.jetbrains.compose.resources.painterResource
 import peluhome.composeapp.generated.resources.Res
+import peluhome.composeapp.generated.resources.icon_address
 import peluhome.composeapp.generated.resources.icon_business_center
+import peluhome.composeapp.generated.resources.icon_clock
+import peluhome.composeapp.generated.resources.icon_close
 
 @Composable
 fun BookingsScreen(
     bookingsViewModel: BookingsViewModel = org.koin.compose.viewmodel.koinViewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    availableServices: List<com.peluhome.project.domain.model.Service> = emptyList()
 ) {
     val state = bookingsViewModel.state
+
+    // Cargar datos cada vez que se entra a la pantalla
+    LaunchedEffect(Unit) {
+        bookingsViewModel.loadUserBookings()
+    }
 
     // Manejar errores
     LaunchedEffect(state.error) {
@@ -100,8 +110,12 @@ fun BookingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(state.bookings) { booking ->
-                    BookingCard(booking = booking)
+                itemsIndexed(state.bookings) { index, booking ->
+                    BookingCard(
+                        booking = booking,
+                        availableServices = availableServices,
+                        reservationNumber = index + 1
+                    )
                 }
             }
         }
@@ -111,6 +125,8 @@ fun BookingsScreen(
 @Composable
 private fun BookingCard(
     booking: BookingWithServices,
+    availableServices: List<com.peluhome.project.domain.model.Service>,
+    reservationNumber: Int,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -130,29 +146,30 @@ private fun BookingCard(
             ) {
                 Column {
                     Text(
-                        text = "Reserva #${booking.id}",
+                        text = "Reserva #$reservationNumber",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                     Text(
-                        text = booking.serviceDate,
+                        text = booking.orderNumber,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
                 }
                 
                 // Estado
-                val statusColor = when (booking.status.lowercase()) {
-                    "pending" -> Color(0xFFFF9800)
-                    "confirmed" -> Color(0xFF4CAF50)
-                    "completed" -> Color(0xFF2196F3)
-                    "cancelled" -> Color(0xFFF44336)
-                    else -> Color.Gray
+                val (statusText, statusColor) = when (booking.status.lowercase()) {
+                    "pending" -> "Pendiente" to Color(0xFFFF9800)
+                    "attended" -> "Atendido" to Color(0xFF4CAF50)
+                    "confirmed" -> "Confirmado" to Color(0xFF2196F3)
+                    "completed" -> "Completado" to Color(0xFF2196F3)
+                    "cancelled" -> "Cancelado" to Color(0xFFF44336)
+                    else -> booking.status.replaceFirstChar { it.uppercase() } to Color.Gray
                 }
                 
                 Text(
-                    text = booking.status.replaceFirstChar { it.uppercase() },
+                    text = statusText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = statusColor
@@ -166,14 +183,14 @@ private fun BookingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    painter = painterResource(Res.drawable.icon_business_center),
+                    painter = painterResource(Res.drawable.icon_clock),
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = ColorPrimary
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    text = booking.serviceTime,
+                    text = "Fecha Reserva: ${booking.serviceDate.take(10)} ${booking.serviceTime}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Black
                 )
@@ -185,7 +202,7 @@ private fun BookingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    painter = painterResource(Res.drawable.icon_business_center),
+                    painter = painterResource(Res.drawable.icon_address),
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = ColorPrimary
@@ -213,19 +230,65 @@ private fun BookingCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Mostrar servicios con nombres del API
             booking.services.forEach { service ->
+                // Debug: Log para ver qué datos están llegando
+                println("DEBUG BookingsScreen: Service ID: ${service.serviceId}, ServiceName: '${service.serviceName}', CategoryName: '${service.categoryName}'")
+                println("DEBUG BookingsScreen: Service completo: $service")
+                
+                val serviceName = service.serviceName ?: "Servicio #${service.serviceId}"
+                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${service.serviceName ?: "Servicio #${service.serviceId}"} x${service.quantity}",
+                        text = "$serviceName x${service.quantity}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Black
                     )
                     Text(
                         text = "S/ ${service.price * service.quantity}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            
+            // Mostrar tarifa de delivery (usar datos del API si están disponibles)
+            val deliveryCost = booking.deliveryCost ?: com.peluhome.project.utils.DeliveryPricing.calculateDeliveryCost(
+                booking.serviceDate, 
+                booking.serviceTime
+            )
+            val deliveryDescription = if (booking.deliveryCost != null) {
+                when (booking.deliveryCost) {
+                    15.0 -> "Delivery (Domingo/Feriado)"
+                    10.0 -> "Delivery (Después de 6 PM)"
+                    else -> "Delivery"
+                }
+            } else {
+                com.peluhome.project.utils.DeliveryPricing.getDeliveryDescription(
+                    booking.serviceDate, 
+                    booking.serviceTime
+                )
+            }
+            
+            if (deliveryCost > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = deliveryDescription,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = "S/ $deliveryCost",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = Color.Black
@@ -251,7 +314,7 @@ private fun BookingCard(
                     color = Color.Black
                 )
                 Text(
-                    text = "S/ ${booking.totalAmount}",
+                    text = "S/ ${booking.totalWithDelivery ?: booking.totalAmount}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = ColorPrimary

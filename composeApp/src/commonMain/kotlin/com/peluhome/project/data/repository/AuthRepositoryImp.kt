@@ -3,6 +3,7 @@ package com.peluhome.project.data.repository
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.peluhome.project.core.Result
 import com.peluhome.project.data.model.ErrorResponse
+import com.peluhome.project.data.model.ProfileResponse
 import com.peluhome.project.data.model.RegisterUserRequest
 import com.peluhome.project.data.model.RegisterUserResponse
 import com.peluhome.project.data.model.SignInRequest
@@ -13,6 +14,7 @@ import com.peluhome.project.domain.repository.AuthRepository
 import com.peluhome.project.local.StoreManager
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -185,6 +187,54 @@ class AuthRepositoryImp(
             return Result.Success(data = user)
         } catch (ex: IOException) {
             return Result.Error(message = "Error al obtener usuario")
+        } catch (ex: Exception) {
+            return Result.Error(message = ex.message ?: "Error desconocido")
+        }
+    }
+
+    override suspend fun getProfile(): Result<User> {
+        try {
+            val response = httpClient.get("${Constants.URL_BASE}${Constants.GET_PROFILE}") {
+                contentType(ContentType.Application.Json)
+            }
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val resp: ProfileResponse = response.body()
+                    val jsonResponse = Json { prettyPrint = true }.encodeToString(ProfileResponse.serializer(), resp)
+                    println("✅ PROFILE - RESPONSE JSON (SUCCESS):")
+                    println(jsonResponse)
+                    println("========================================")
+                    
+                    if (resp.success && resp.data != null) {
+                        // Actualizar usuario en preferencias
+                        val keyUser = stringPreferencesKey(Constants.PREF_KEY_USER)
+                        storeManager.saveValue(keyUser, resp.data.user)
+                        return Result.Success(data = resp.data.user)
+                    } else {
+                        return Result.Error(message = "Error al obtener perfil")
+                    }
+                }
+
+                HttpStatusCode.Unauthorized -> {
+                    val errorJson = response.bodyAsText()
+                    println("❌ PROFILE - RESPONSE JSON (UNAUTHORIZED):")
+                    println(errorJson)
+                    println("========================================")
+                    val errorResp = Json { ignoreUnknownKeys = true }.decodeFromString<ErrorResponse>(errorJson)
+                    return Result.Error(message = errorResp.message)
+                }
+
+                else -> {
+                    val errorJson = response.bodyAsText()
+                    println("❌ PROFILE - RESPONSE JSON (ERROR ${response.status}):")
+                    println(errorJson)
+                    println("========================================")
+                    return Result.Error(message = "Error del servidor: ${response.status}")
+                }
+            }
+        } catch (ex: IOException) {
+            return Result.Error(message = "Compruebe su conexión a internet")
         } catch (ex: Exception) {
             return Result.Error(message = ex.message ?: "Error desconocido")
         }

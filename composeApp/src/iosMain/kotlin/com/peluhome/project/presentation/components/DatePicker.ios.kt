@@ -33,8 +33,8 @@ actual fun DatePickerDialog(
             val datePicker = UIDatePicker().apply {
                 datePickerMode = UIDatePickerMode.UIDatePickerModeDate
                 preferredDatePickerStyle = platform.UIKit.UIDatePickerStyle.UIDatePickerStyleWheels
-                // Establecer fecha mínima como hoy
-                minimumDate = platform.Foundation.NSDate()
+                // Sin restricciones de fecha - permitir cualquier fecha
+                // La validación de fechas pasadas se hace en el Paso 3
             }
             
             alertController.view.addSubview(datePicker)

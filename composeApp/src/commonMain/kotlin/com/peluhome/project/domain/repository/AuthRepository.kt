@@ -20,6 +20,8 @@ interface AuthRepository {
     
     suspend fun getUser(): Result<User?>
     
+    suspend fun getProfile(): Result<User>
+    
     suspend fun logout(): Result<Boolean>
 }
 

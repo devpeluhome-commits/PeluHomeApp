@@ -15,5 +15,9 @@ interface BookingRepository {
     ): Result<Booking>
     
     suspend fun getUserBookings(): Result<List<BookingWithServices>>
+    
+    // Métodos de admin
+    suspend fun getAllBookings(): Result<List<BookingWithServices>>
+    suspend fun updateBookingStatus(bookingId: Int, status: String): Result<Boolean>
 }
 

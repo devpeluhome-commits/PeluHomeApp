@@ -89,3 +89,26 @@ data class BookingsResponse(
 data class BookingsData(
     @SerialName("bookings") val bookings: List<com.peluhome.project.domain.model.BookingWithServices>
 )
+
+@Serializable
+data class ProfileResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("data") val data: ProfileData
+)
+
+@Serializable
+data class ProfileData(
+    @SerialName("user") val user: User
+)
+
+@Serializable
+data class UpdateBookingStatusResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("message") val message: String,
+    @SerialName("data") val data: UpdateBookingStatusData? = null
+)
+
+@Serializable
+data class UpdateBookingStatusData(
+    @SerialName("booking") val booking: com.peluhome.project.domain.model.Booking
+)

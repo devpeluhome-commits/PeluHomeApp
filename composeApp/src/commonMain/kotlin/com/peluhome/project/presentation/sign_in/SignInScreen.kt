@@ -38,12 +38,13 @@ fun SignInScreen(
     modifier: Modifier = Modifier,
     viewModel: SignInViewModel = koinViewModel(),
     onNavigationNewUser:()->Unit,
-    onNavigationHome:()->Unit
+    onNavigationHome:()->Unit,
+    onNavigationAdmin:()->Unit
 ) {
     val state = viewModel.state
 
-    var documentNumber by remember { mutableStateOf("46079567") }
-    var password by remember { mutableStateOf("123456789") }
+    var documentNumber by remember { mutableStateOf("99999999") } //46079567
+    var password by remember { mutableStateOf("123456789") } //Pelu@@22
     var passwordVisible by remember { mutableStateOf(true) }
 
     var showDialogWarningOrError by remember { mutableStateOf(false) }
@@ -54,7 +55,12 @@ fun SignInScreen(
     LaunchedEffect(key1 = state.success, key2 = state.error) {
         if (state.success != null) {
             viewModel.clear()
-            onNavigationHome()
+            // Redirigir según el rol del usuario
+            if (state.isAdmin) {
+                onNavigationAdmin()
+            } else {
+                onNavigationHome()
+            }
         }
         if (state.error != null) {
             showDialogWarningOrError = true

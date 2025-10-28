@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.peluhome.project.presentation.sign_in.SignInScreen
 import com.peluhome.project.presentation.register_user.RegisterUserScreen
 import com.peluhome.project.presentation.home.HomeScreen
+import com.peluhome.project.presentation.admin.AdminBookingsScreen
 
 @Composable
 fun SetupNavigation() {
@@ -24,6 +25,9 @@ fun SetupNavigation() {
                 },
                 onNavigationHome = {
                     navController.navigate(Home)
+                },
+                onNavigationAdmin = {
+                    navController.navigate(Admin)
                 }
             )
         }
@@ -45,6 +49,17 @@ fun SetupNavigation() {
                 },
                 onNavigationHome = {
                     navController.navigate(Home)
+                }
+            )
+        }
+        composable<Admin> {
+            AdminBookingsScreen(
+                onLogout = {
+                    navController.navigate(SignIn) {
+                        popUpTo(SignIn) {
+                            inclusive = true
+                        }
+                    }
                 }
             )
         }

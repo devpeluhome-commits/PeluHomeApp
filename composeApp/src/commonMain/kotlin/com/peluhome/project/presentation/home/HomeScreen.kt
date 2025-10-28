@@ -55,6 +55,7 @@ import peluhome.composeapp.generated.resources.icon_menu
 import peluhome.composeapp.generated.resources.icon_plus
 import peluhome.composeapp.generated.resources.icon_profile
 import peluhome.composeapp.generated.resources.icon_services
+import peluhome.composeapp.generated.resources.icon_sign_out
 import peluhome.composeapp.generated.resources.logo_peluhome
 
 @Composable
@@ -153,7 +154,7 @@ fun HomeScreen(
                         onClick = { showLogoutDialog = true }
                     ) {
                         Icon(
-                            painter = painterResource(Res.drawable.icon_business_center),
+                            painter = painterResource(Res.drawable.icon_sign_out),
                             contentDescription = "Cerrar Sesión",
                             modifier = Modifier.size(24.dp),
                             tint = Color.White
@@ -284,7 +285,7 @@ fun HomeScreen(
                         println("DEBUG HomeScreen: Carrito y servicios disponibles reseteados después de completar servicio")
                     }
                 )
-                2 -> BookingsScreen()
+                2 -> BookingsScreen(availableServices = availableServices)
             }
         }
         

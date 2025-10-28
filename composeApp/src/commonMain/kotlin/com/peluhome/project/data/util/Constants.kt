@@ -20,6 +20,10 @@ class Constants {
         const val CREATE_BOOKING = "bookings"
         const val GET_USER_BOOKINGS = "bookings"
         
+        // Endpoints de admin
+        const val ADMIN_GET_ALL_BOOKINGS = "admin/bookings"
+        const val ADMIN_UPDATE_BOOKING_STATUS = "admin/bookings"
+        
         // Claves de preferencias locales
         const val PREF_KEY_TOKEN = "PreferencesStoreToken"
         const val PREF_KEY_USER = "PreferencesStoreUser"

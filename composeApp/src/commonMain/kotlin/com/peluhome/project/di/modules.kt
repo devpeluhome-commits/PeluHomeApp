@@ -9,6 +9,7 @@ import com.peluhome.project.domain.repository.AuthRepository
 import com.peluhome.project.domain.repository.ServiceRepository
 import com.peluhome.project.local.StoreManager
 import com.peluhome.project.presentation.home.ServicesViewModel
+import com.peluhome.project.presentation.profile.ProfileViewModel
 import com.peluhome.project.presentation.register_user.RegisterUserViewModel
 import com.peluhome.project.presentation.sign_in.SignInViewModel
 import io.ktor.client.HttpClient
@@ -61,6 +62,12 @@ val viewModelModule = module {
     }
     viewModel {
         com.peluhome.project.presentation.history.BookingsViewModel(bookingRepository = get())
+    }
+    viewModel {
+        ProfileViewModel(authRepository = get())
+    }
+    viewModel {
+        com.peluhome.project.presentation.admin.AdminViewModel(bookingRepository = get())
     }
 }
 

@@ -6,6 +6,7 @@ import com.peluhome.project.data.model.BookingsResponse
 import com.peluhome.project.data.model.CreateBookingRequest
 import com.peluhome.project.data.model.CreateBookingResponse
 import com.peluhome.project.data.model.ErrorResponse
+import com.peluhome.project.data.model.UpdateBookingStatusResponse
 import com.peluhome.project.data.util.Constants
 import com.peluhome.project.domain.model.Booking
 import com.peluhome.project.domain.model.BookingWithServices
@@ -14,6 +15,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -21,6 +23,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.utils.io.errors.IOException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class BookingRepositoryImp(
     private val httpClient: HttpClient
@@ -177,6 +180,128 @@ class BookingRepositoryImp(
             return Result.Error(message = "Compruebe su conexión a internet")
         } catch (ex: Exception) {
             println("❌ ERROR AL OBTENER RESERVAS: ${ex.message}")
+            ex.printStackTrace()
+            return Result.Error(message = ex.message ?: "Error desconocido")
+        }
+    }
+
+    // Métodos de admin
+    override suspend fun getAllBookings(): Result<List<BookingWithServices>> {
+        try {
+            println("========================================")
+            println("📤 ADMIN - OBTENER TODAS LAS RESERVAS")
+            println("URL: ${Constants.URL_BASE}${Constants.ADMIN_GET_ALL_BOOKINGS}")
+            println("========================================")
+
+            val response = httpClient.get("${Constants.URL_BASE}${Constants.ADMIN_GET_ALL_BOOKINGS}")
+
+            println("📥 ADMIN RESERVAS - RESPONSE STATUS: ${response.status}")
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val resp: BookingsResponse = response.body()
+                    val jsonResponse = Json { prettyPrint = true }.encodeToString(
+                        BookingsResponse.serializer(),
+                        resp
+                    )
+                    println("✅ ADMIN RESERVAS - RESPONSE JSON (SUCCESS):")
+                    println(jsonResponse)
+                    println("========================================")
+                    
+                    if (resp.success && resp.data != null) {
+                        return Result.Success(data = resp.data.bookings)
+                    } else {
+                        return Result.Error(message = "Error al obtener reservas")
+                    }
+                }
+
+                HttpStatusCode.Unauthorized -> {
+                    val errorJson = response.bodyAsText()
+                    println("❌ ADMIN RESERVAS - RESPONSE JSON (UNAUTHORIZED):")
+                    println(errorJson)
+                    println("========================================")
+                    val errorResp = Json { ignoreUnknownKeys = true }.decodeFromString<ErrorResponse>(errorJson)
+                    return Result.Error(message = errorResp.message)
+                }
+
+                else -> {
+                    val errorJson = response.bodyAsText()
+                    println("❌ ADMIN RESERVAS - RESPONSE JSON (ERROR ${response.status}):")
+                    println(errorJson)
+                    println("========================================")
+                    return Result.Error(message = "Error del servidor: ${response.status}")
+                }
+            }
+        } catch (ex: IOException) {
+            return Result.Error(message = "Compruebe su conexión a internet")
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            return Result.Error(message = ex.message ?: "Error desconocido")
+        }
+    }
+
+    override suspend fun updateBookingStatus(bookingId: Int, status: String): Result<Boolean> {
+        try {
+            println("========================================")
+            println("📤 ADMIN - ACTUALIZAR ESTADO DE RESERVA")
+            println("URL: ${Constants.URL_BASE}${Constants.ADMIN_UPDATE_BOOKING_STATUS}/$bookingId/status")
+            println("Booking ID: $bookingId, Status: $status")
+            println("========================================")
+
+            val requestBody = mapOf("status" to status)
+            val jsonRequest = Json { prettyPrint = true }.encodeToString(
+                kotlinx.serialization.serializer<Map<String, String>>(),
+                requestBody
+            )
+            println("📤 ADMIN UPDATE - REQUEST JSON:")
+            println(jsonRequest)
+            println("========================================")
+
+            val response = httpClient.put("${Constants.URL_BASE}${Constants.ADMIN_UPDATE_BOOKING_STATUS}/$bookingId/status") {
+                contentType(ContentType.Application.Json)
+                setBody(jsonRequest)
+            }
+
+            println("📥 ADMIN UPDATE - RESPONSE STATUS: ${response.status}")
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val resp: UpdateBookingStatusResponse = response.body()
+                    val jsonResponse = Json { prettyPrint = true }.encodeToString(
+                        UpdateBookingStatusResponse.serializer(),
+                        resp
+                    )
+                    println("✅ ADMIN UPDATE - RESPONSE JSON (SUCCESS):")
+                    println(jsonResponse)
+                    println("========================================")
+                    
+                    if (resp.success) {
+                        return Result.Success(data = true)
+                    } else {
+                        return Result.Error(message = "Error al actualizar estado")
+                    }
+                }
+
+                HttpStatusCode.Unauthorized -> {
+                    val errorJson = response.bodyAsText()
+                    println("❌ ADMIN UPDATE - RESPONSE JSON (UNAUTHORIZED):")
+                    println(errorJson)
+                    println("========================================")
+                    val errorResp = Json { ignoreUnknownKeys = true }.decodeFromString<ErrorResponse>(errorJson)
+                    return Result.Error(message = errorResp.message)
+                }
+
+                else -> {
+                    val errorJson = response.bodyAsText()
+                    println("❌ ADMIN UPDATE - RESPONSE JSON (ERROR ${response.status}):")
+                    println(errorJson)
+                    println("========================================")
+                    return Result.Error(message = "Error del servidor: ${response.status}")
+                }
+            }
+        } catch (ex: IOException) {
+            return Result.Error(message = "Compruebe su conexión a internet")
+        } catch (ex: Exception) {
             ex.printStackTrace()
             return Result.Error(message = ex.message ?: "Error desconocido")
         }

@@ -13,6 +13,7 @@ data class User(
     @SerialName("document_number") val documentNumber: String,
     @SerialName("phone") val phone: String,
     @SerialName("email") val email: String,
+    @SerialName("role") val role: String = "client",
     @SerialName("created_at") val createdAt: String? = null
 )
 

@@ -38,7 +38,17 @@ class SignInViewModel(
                     }
 
                     is Result.Success -> {
-                        state = state.copy(success = response.data, isLoading = false, error = null)
+                        val user = response.data
+                        val isAdmin = user?.role == "admin"
+                        val isClient = user?.role == "client"
+                        
+                        state = state.copy(
+                            success = user, 
+                            isLoading = false, 
+                            error = null,
+                            isAdmin = isAdmin,
+                            isClient = isClient
+                        )
                     }
                 }
 
@@ -49,14 +59,16 @@ class SignInViewModel(
     }
 
     fun clear() {
-        state = state.copy(error = null, success = null, isLoading = false)
+        state = state.copy(error = null, success = null, isLoading = false, isAdmin = false, isClient = false)
     }
 }
 
 data class SignInState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val success: User? = null
+    val success: User? = null,
+    val isAdmin: Boolean = false,
+    val isClient: Boolean = false
 )
 
 
