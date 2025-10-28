@@ -61,6 +61,7 @@ import org.jetbrains.compose.resources.painterResource
 import peluhome.composeapp.generated.resources.Res
 import peluhome.composeapp.generated.resources.icon_business_center
 import peluhome.composeapp.generated.resources.icon_sign_out
+import peluhome.composeapp.generated.resources.icon_sync
 import peluhome.composeapp.generated.resources.logo_peluhome
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,7 +140,7 @@ fun AdminBookingsScreen(
                         onClick = { adminViewModel.loadAllBookings() }
                     ) {
                         Icon(
-                            painter = painterResource(Res.drawable.icon_next),
+                            painter = painterResource(Res.drawable.icon_sync),
                             contentDescription = "Refrescar",
                             modifier = Modifier.size(24.dp),
                             tint = Color.White

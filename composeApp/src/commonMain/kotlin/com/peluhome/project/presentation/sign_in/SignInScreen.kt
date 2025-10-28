@@ -46,11 +46,24 @@ fun SignInScreen(
     var documentNumber by remember { mutableStateOf("99999999") } //46079567
     var password by remember { mutableStateOf("123456789") } //Pelu@@22
     var passwordVisible by remember { mutableStateOf(true) }
+    var rememberCredentials by remember { mutableStateOf(false) }
 
     var showDialogWarningOrError by remember { mutableStateOf(false) }
     var showDialogSuccess by remember { mutableStateOf(false) }
     var messageWarningOrError by remember { mutableStateOf("") }
     var messageSuccess by remember { mutableStateOf("") }
+
+    // Cargar credenciales guardadas al iniciar la pantalla
+    LaunchedEffect(Unit) {
+        val savedCredentials = viewModel.loadSavedCredentials()
+        val isRememberEnabled = viewModel.isRememberCredentialsEnabled()
+        
+        if (isRememberEnabled && savedCredentials.first != null && savedCredentials.second != null) {
+            documentNumber = savedCredentials.first!!
+            password = savedCredentials.second!!
+            rememberCredentials = true
+        }
+    }
 
     LaunchedEffect(key1 = state.success, key2 = state.error) {
         if (state.success != null) {
@@ -142,6 +155,7 @@ fun SignInScreen(
                     user = documentNumber,
                     password = password,
                     visualTransformation = passwordVisible,
+                    rememberCredentials = rememberCredentials,
                     onSignIn = {
                         val errors = mutableListOf<String>()
 
@@ -154,7 +168,7 @@ fun SignInScreen(
                             return@SignUpForm
                         }
 
-                        viewModel.signIn(documentNumber, password)
+                        viewModel.signIn(documentNumber, password, rememberCredentials)
                     },
                     onChangeDocument = {
                         documentNumber = it
@@ -164,6 +178,9 @@ fun SignInScreen(
                     },
                     onChangePasswordVisibility = {
                         passwordVisible = it
+                    },
+                    onRememberCredentialsChange = {
+                        rememberCredentials = it
                     },
                     isLoading = state.isLoading
                 )

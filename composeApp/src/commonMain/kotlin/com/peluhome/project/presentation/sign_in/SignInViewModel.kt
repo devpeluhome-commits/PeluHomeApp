@@ -7,20 +7,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.peluhome.project.core.Result
 import com.peluhome.project.domain.model.User
-import com.peluhome.project.domain.repository.AuthRepository
+import com.peluhome.project.local.StoreManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SignInViewModel(
-    val authRepository: AuthRepository
+    val authRepository: AuthRepository,
+    val storeManager: StoreManager
 ) : ViewModel() {
 
     var state by mutableStateOf(SignInState())
         private set
 
-    fun signIn(documentNumber: String, password: String) {
+    fun signIn(documentNumber: String, password: String, rememberCredentials: Boolean = false) {
         viewModelScope.launch {
             try {
                 state = state.copy(isLoading = true)
@@ -42,6 +43,13 @@ class SignInViewModel(
                         val isAdmin = user?.role == "admin"
                         val isClient = user?.role == "client"
                         
+                        // Guardar credenciales si el usuario lo solicitó
+                        if (rememberCredentials) {
+                            storeManager.saveCredentials(documentNumber, password)
+                        } else {
+                            storeManager.clearCredentials()
+                        }
+                        
                         state = state.copy(
                             success = user, 
                             isLoading = false, 
@@ -60,6 +68,20 @@ class SignInViewModel(
 
     fun clear() {
         state = state.copy(error = null, success = null, isLoading = false, isAdmin = false, isClient = false)
+    }
+    
+    fun clearError() {
+        state = state.copy(error = null)
+    }
+    
+    // Cargar credenciales guardadas
+    suspend fun loadSavedCredentials(): Pair<String?, String?> {
+        return storeManager.getSavedCredentials()
+    }
+    
+    // Verificar si recordar credenciales está habilitado
+    suspend fun isRememberCredentialsEnabled(): Boolean {
+        return storeManager.isRememberCredentialsEnabled()
     }
 }
 
