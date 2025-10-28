@@ -48,10 +48,9 @@ actual fun DatePickerDialog(
             ) {
                 val selectedDate = datePicker.date
                 
-                // Usar calendario gregoriano con zona horaria local
-                val calendar = NSCalendar.gregorianCalendar().apply {
-                    timeZone = platform.Foundation.NSTimeZone.localTimeZone
-                }
+                // Usar calendario con zona horaria local
+                val calendar = NSCalendar.currentCalendar()
+                calendar.timeZone = platform.Foundation.NSTimeZone.localTimeZone()
                 
                 val components = calendar.components(
                     unitFlags = (platform.Foundation.NSCalendarUnitDay or 
