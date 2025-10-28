@@ -52,7 +52,7 @@ val dataModule = module {
 
 val viewModelModule = module {
     viewModel {
-        SignInViewModel(authRepository = get(), storeManager = get())
+        SignInViewModel(authRepository = get<AuthRepository>(), storeManager = get<StoreManager>())
     }
     viewModel {
         RegisterUserViewModel(authRepository = get())
