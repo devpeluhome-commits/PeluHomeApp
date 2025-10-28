@@ -48,25 +48,17 @@ actual fun DatePickerDialog(
             ) {
                 val selectedDate = datePicker.date
                 
-                // Usar calendario por defecto (ya maneja la zona horaria local)
-                val calendar = NSCalendar.currentCalendar()
+                // Crear un formateador de fecha para evitar problemas de zona horaria
+                val dateFormatter = platform.Foundation.NSDateFormatter()
+                dateFormatter.dateFormat = "dd/MM/yyyy"
+                dateFormatter.timeZone = platform.Foundation.NSTimeZone.systemTimeZone
                 
-                val components = calendar.components(
-                    unitFlags = (platform.Foundation.NSCalendarUnitDay or 
-                                platform.Foundation.NSCalendarUnitMonth or 
-                                platform.Foundation.NSCalendarUnitYear).toULong(),
-                    fromDate = selectedDate
-                )
-                
-                val day = components.day
-                val month = components.month
-                val year = components.year
+                val formattedDate = dateFormatter.stringFromDate(selectedDate)
                 
                 // Debug para verificar los valores
                 println("iOS DatePicker - Selected date: $selectedDate")
-                println("iOS DatePicker - Day: $day, Month: $month, Year: $year")
+                println("iOS DatePicker - Formatted date: $formattedDate")
                 
-                val formattedDate = "${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/$year"
                 onDateSelected(formattedDate)
                 onDismiss()
             }
