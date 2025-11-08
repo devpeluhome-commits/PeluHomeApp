@@ -79,6 +79,8 @@ fun AdminBookingsScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
     var selectedBookingId by remember { mutableStateOf(0) }
     var selectedAction by remember { mutableStateOf("") }
+    var confirmDialogTitle by remember { mutableStateOf("") }
+    var confirmDialogMessage by remember { mutableStateOf("") }
     
     // Estado para el buscador
     var searchQuery by remember { mutableStateOf("") }
@@ -282,7 +284,16 @@ fun AdminBookingsScreen(
                                         selectedBookingId = bookingId
                                         selectedAction = newStatus
                                         when (newStatus) {
-                                            "attended" -> showConfirmDialog = true
+                                            "confirmed" -> {
+                                                confirmDialogTitle = "Confirmar Reserva"
+                                                confirmDialogMessage = "¿Estás seguro de que quieres confirmar esta reserva?"
+                                                showConfirmDialog = true
+                                            }
+                                            "attended" -> {
+                                                confirmDialogTitle = "Marcar como atendida"
+                                                confirmDialogMessage = "¿Confirmas que la reserva fue atendida?"
+                                                showConfirmDialog = true
+                                            }
                                             "cancelled" -> showCancelDialog = true
                                         }
                                     }
@@ -319,8 +330,8 @@ fun AdminBookingsScreen(
             // Diálogo de confirmación para confirmar reserva
             if (showConfirmDialog) {
                 ConfirmDialog(
-                    title = "Confirmar Reserva",
-                    message = "¿Estás seguro de que quieres confirmar esta reserva?",
+                    title = confirmDialogTitle,
+                    message = confirmDialogMessage,
                     onCancel = { showConfirmDialog = false },
                     onConfirm = {
                         showConfirmDialog = false
@@ -383,8 +394,9 @@ private fun AdminBookingCard(
                     // Estado actual
                     val (statusText, statusColor) = when (booking.status.lowercase()) {
                         "pending" -> "Pendiente" to Color(0xFFFF9800)
-                        "attended" -> "Atendido" to Color(0xFF4CAF50)
-                        "cancelled" -> "Cancelado" to Color(0xFFF44336)
+                        "confirmed" -> "Confirmada" to Color(0xFF2196F3)
+                        "attended" -> "Atendida" to Color(0xFF4CAF50)
+                        "cancelled" -> "Cancelada" to Color(0xFFF44336)
                         else -> booking.status.replaceFirstChar { it.uppercase() } to Color.Gray
                     }
 
@@ -540,49 +552,75 @@ private fun AdminBookingCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botones de acción - Solo mostrar si está pendiente
-            if (booking.status.lowercase() == "pending") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { onStatusChange(booking.id, "attended") },
-                        modifier = Modifier.weight(1f)
+            when (booking.status.lowercase()) {
+                "pending" -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Confirmar")
-                    }
-                    Button(
-                        onClick = { onStatusChange(booking.id, "cancelled") },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF44336)
-                        )
-                    ) {
-                        Text("Cancelar")
+                        Button(
+                            onClick = { onStatusChange(booking.id, "confirmed") },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Confirmar")
+                        }
+                        Button(
+                            onClick = { onStatusChange(booking.id, "cancelled") },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF44336)
+                            )
+                        ) {
+                            Text("Cancelar")
+                        }
                     }
                 }
-            } else {
-                // Mostrar estado final si ya fue procesado
-                when (booking.status.lowercase()) {
-                    "attended" -> {
+                "confirmed" -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = "✅ Reserva atendida",
+                            text = "⚠️ Reserva confirmada",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF4CAF50),
-                            modifier = Modifier.fillMaxWidth(),
+                            color = Color(0xFF2196F3),
                             textAlign = TextAlign.Center
                         )
+                        Button(
+                            onClick = { onStatusChange(booking.id, "attended") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Marcar como atendida")
+                        }
                     }
-                    "cancelled" -> {
-                        Text(
-                            text = "❌ Reserva cancelada",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFFF44336),
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                }
+                "attended" -> {
+                    Text(
+                        text = "✅ Reserva atendida",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+                "cancelled" -> {
+                    Text(
+                        text = "❌ Reserva cancelada",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFF44336),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+                else -> {
+                    Text(
+                        text = "Estado: ${booking.status.replaceFirstChar { it.uppercase() }}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
